@@ -1,0 +1,9 @@
+# Local data storage file (Do not upload to GitHub)
+ingestion/ingested_records.csv
+*.csv
+
+# Python environment and cache artifacts
+__pycache__/
+ingestion/__pycache__/
+*.pyc
+.env

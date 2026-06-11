@@ -1,0 +1,4 @@
+requests==2.31.0
+pandas==2.2.0
+numpy==1.26.3
+prometheus-client==0.20.0
