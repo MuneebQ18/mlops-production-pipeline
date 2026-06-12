@@ -4,6 +4,8 @@ import requests
 import pandas as pd
 from prometheus_client import start_http_server, Counter, Gauge
 from drift_detector import SimpleDriftDetector
+import subprocess
+
 
 # ==========================================
 # METRICS CONFIGURATION (Task 3.3 Reference)
@@ -19,6 +21,9 @@ drift_gauge = Gauge('distribution_drift_detected', 'Set to 1 when drift is detec
 
 # Task 3.3: Prometheus counter for tracking data source/datalake infrastructure unavailability
 api_unavailable_counter = Counter('datalake_unavailable_total', 'Total number of times the data lake API was unavailable')
+
+# Task 4.2: Prometheus counter tracking the cumulative number of retraining pipeline invocations
+retrain_total_counter = Counter('retrain_total', 'Total number of times the retraining pipeline has been triggered')
 
 
 # ==========================================
@@ -51,12 +56,40 @@ def send_slack_alert(message):
 
 def trigger_retraining_pipeline(reason):
     """
-    Task 3.3 (Retraining Trigger Logic):
-    Minimal interface hook requested by Part 1 constraints. Logs the root cause event
-    and flags that a retraining pipeline execution run is officially requested.
+    Task 4.2: Invocated by structural anomalies or statistical drift events.
+    Increments metrics, spins up the training subprocess, and captures evaluation logs.
     """
-    print(f"[RETRAINING TRIGGERED] Reason: {reason}")
-    print("Notification: Retraining pipeline execution cycle has been requested.")
+    print(f"\n[RETRAINING INITIATED] Reason: {reason}")
+    
+    # 1. Increment the cumulative execution metric counter
+    retrain_total_counter.inc()
+    
+    # Resolve the path to train.py dynamically based on execution context
+    script_path = "model/train.py"
+    if not os.path.exists(script_path) and os.path.exists("../model/train.py"):
+        script_path = "../model/train.py"
+
+    print(f"Executing training pipeline process via shell: {script_path}")
+    
+    try:
+        # 2. Execute model/train.py as a distinct isolated system subprocess
+        result = subprocess.run(
+            ["python", script_path],
+            capture_output=True,
+            text=True,
+            check=True
+        )
+        
+        # 3. Stream and display stdout metrics emitted from the training execution
+        print("----- SUBPROCESS TRAINING OUTPUT -----")
+        print(result.stdout.strip())
+        print("--------------------------------------")
+        
+    except subprocess.CalledProcessError as e:
+        print(f"CRITICAL: Retraining subprocess execution failed with exit code {e.returncode}")
+        print(f"Subprocess Error Output:\n{e.stderr.strip()}")
+    except Exception as e:
+        print(f"An unexpected error occurred while launching training subprocess: {e}")
 
 
 # ==========================================
@@ -68,6 +101,8 @@ print("Starting continuous ingestion loop. Metrics exposed at http://localhost:8
 
 # Instantiate our custom drift detection component with a Z-Score threshold of 2.0
 detector = SimpleDriftDetector(threshold=2.0)
+
+# trigger_retraining_pipeline("manual test")
 
 while True:
     try:
