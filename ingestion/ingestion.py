@@ -5,6 +5,11 @@ import pandas as pd
 from prometheus_client import start_http_server, Counter, Gauge
 from drift_detector import SimpleDriftDetector
 import subprocess
+import json
+import sys
+# Append project root to path to allow seamless cross-directory sub-module loading
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+from model.retrain_trigger import trigger_retraining_pipeline
 
 
 # ==========================================
@@ -22,10 +27,6 @@ drift_gauge = Gauge('distribution_drift_detected', 'Set to 1 when drift is detec
 # Task 3.3: Prometheus counter for tracking data source/datalake infrastructure unavailability
 api_unavailable_counter = Counter('datalake_unavailable_total', 'Total number of times the data lake API was unavailable')
 
-# Task 4.2: Prometheus counter tracking the cumulative number of retraining pipeline invocations
-retrain_total_counter = Counter('retrain_total', 'Total number of times the retraining pipeline has been triggered')
-
-
 # ==========================================
 # SYSTEM PARAMETERS & SECURITY CONFIGURATION
 # ==========================================
@@ -33,6 +34,12 @@ url = "http://149.40.228.124:6500/records"
 csv_path = "ingested_records.csv"
 previous_schema = None
 baseline_df = None 
+
+# Task 4.2 Accuracy Monitoring Configuration
+ACCURACY_THRESHOLD = 0.80
+
+# In-memory tracking state to prevent repeated retraining loops for the same bad model version
+last_evaluated_model_version = None
 
 # SECURE CREDENTIAL MANAGEMENT: Prevents exposed keys in git logs/source code files
 SLACK_WEBHOOK_URL = os.environ.get("SLACK_WEBHOOK_URL")
@@ -54,44 +61,6 @@ def send_slack_alert(message):
     except Exception as e:
         print(f"Failed to send Slack notification: {e}")
 
-def trigger_retraining_pipeline(reason):
-    """
-    Task 4.2: Invocated by structural anomalies or statistical drift events.
-    Increments metrics, spins up the training subprocess, and captures evaluation logs.
-    """
-    print(f"\n[RETRAINING INITIATED] Reason: {reason}")
-    
-    # 1. Increment the cumulative execution metric counter
-    retrain_total_counter.inc()
-    
-    # Resolve the path to train.py dynamically based on execution context
-    script_path = "model/train.py"
-    if not os.path.exists(script_path) and os.path.exists("../model/train.py"):
-        script_path = "../model/train.py"
-
-    print(f"Executing training pipeline process via shell: {script_path}")
-    
-    try:
-        # 2. Execute model/train.py as a distinct isolated system subprocess
-        result = subprocess.run(
-            ["python", script_path],
-            capture_output=True,
-            text=True,
-            check=True
-        )
-        
-        # 3. Stream and display stdout metrics emitted from the training execution
-        print("----- SUBPROCESS TRAINING OUTPUT -----")
-        print(result.stdout.strip())
-        print("--------------------------------------")
-        
-    except subprocess.CalledProcessError as e:
-        print(f"CRITICAL: Retraining subprocess execution failed with exit code {e.returncode}")
-        print(f"Subprocess Error Output:\n{e.stderr.strip()}")
-    except Exception as e:
-        print(f"An unexpected error occurred while launching training subprocess: {e}")
-
-
 # ==========================================
 # MAIN LOOP ENGINE EXECUTION ENTRYPOINT
 # ==========================================
@@ -102,7 +71,9 @@ print("Starting continuous ingestion loop. Metrics exposed at http://localhost:8
 # Instantiate our custom drift detection component with a Z-Score threshold of 2.0
 detector = SimpleDriftDetector(threshold=2.0)
 
-# trigger_retraining_pipeline("manual test")
+# Task 4.1: Load initial values from the metadata file when ingestion.py boots up
+from model.retrain_trigger import update_model_prometheus_metrics
+update_model_prometheus_metrics()
 
 while True:
     try:
@@ -181,6 +152,43 @@ while True:
                 df.to_csv(csv_path, mode='a', header=False, index=False)
                 
             print(f"Successfully saved {len(df)} records. Current schema tracking: {list(current_schema)}")
+
+            # ----------------------------------------------------------------------
+            # ACCURACY PERFORMANCE MONITORING (Task 4.2)
+            # ----------------------------------------------------------------------
+            metadata_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "model", "latest_model_metadata.json")
+            
+            if os.path.exists(metadata_path):
+                try:
+                    with open(metadata_path, "r") as f:
+                        meta_data = json.load(f)
+                        
+                    current_model_ver = meta_data.get("model_version")
+                    current_model_acc = meta_data.get("validation_accuracy", 1.0)
+                    
+                    # Only evaluate if we haven't already processed this model version
+                    if current_model_ver != last_evaluated_model_version:
+                        if current_model_acc < ACCURACY_THRESHOLD:
+                            acc_msg = f"Performance Drop! Model v{current_model_ver} accuracy ({current_model_acc}) fell below threshold of {ACCURACY_THRESHOLD}."
+                            print(acc_msg)
+                            send_slack_alert(acc_msg)
+                            
+                            # Fire retraining pipeline immediately
+                            trigger_retraining_pipeline(f"Accuracy performance degradation in production: {acc_msg}")
+                            
+                            # CRITICAL SAFETY UPDATE: Immediately sync the lock with the newly trained version
+                            if os.path.exists(metadata_path):
+                                with open(metadata_path, "r") as f_new:
+                                    meta_data_new = json.load(f_new)
+                                    current_model_ver = meta_data_new.get("model_version", current_model_ver)
+                        
+                        # Lock this model version to ensure we don't trigger again next cycle
+                        last_evaluated_model_version = current_model_ver
+                        
+                except Exception as e:
+                    print(f"Error reading model performance metadata file: {e}")
+            # ----------------------------------------------------------------------
+
         else:
             print(f"Received unexpected status code: {response.status_code}")
             
