@@ -47,7 +47,6 @@ SLACK_WEBHOOK_URL = os.environ.get("SLACK_WEBHOOK_URL")
 if not SLACK_WEBHOOK_URL:
     print("Warning: SLACK_WEBHOOK_URL environment variable is not set. Slack alerts will fail.")
 
-
 # ==========================================
 # UTILITY ALERTS & RETRAINING TRIGGER FUNCTIONS
 # ==========================================
