@@ -1,1 +1,15 @@
-[![Review Assignment Due Date](https://classroom.github.com/assets/deadline-readme-button-22041afd0340ce965d47ae6ef1cefeee28c7c493a6346c4f15d667ab976d596c.svg)](https://classroom.github.com/a/NZbV6Puz)
+# MLOps Project
+
+## AWS EC2 Deployment
+
+Public IPv4 Address: 3.89.164.37
+
+Inference Service Endpoints:
+
+- http://3.89.164.37:8000/health
+- http://3.89.164.37:8000/docs
+- http://3.89.164.37:8000/metrics
+
+Docker Image:
+
+- docker.io/muneeb0718/mlops-inference-service:latest
