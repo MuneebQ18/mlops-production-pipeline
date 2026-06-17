@@ -1,0 +1,46 @@
+groups:
+- name: mlops_alerts
+
+  rules:
+
+  - alert: DataLakeUnavailable
+    expr: increase(datalake_unavailable[1m]) > 0
+    for: 0s
+    annotations:
+      description: "Data source returned 503. Check API availability."
+
+  - alert: FeatureAdded
+    expr: increase(feature_added[1m]) > 0
+    for: 0s
+    annotations:
+      description: "New feature detected in schema. Retraining may be required."
+
+  - alert: FeatureRemoved
+    expr: increase(feature_removed[1m]) > 0
+    for: 0s
+    annotations:
+      description: "Feature dropped from schema. Verify pipeline compatibility."
+
+  - alert: DistributionDrift
+    expr: distribution_drift_detected == 1
+    for: 0s
+    annotations:
+      description: "Data distribution drift detected. Model may be stale."
+
+  - alert: FeatureDriftDetected
+    expr: distribution_drift_detected > 0
+    for: 0s
+    annotations:
+      description: "Feature-level drift flagged. Investigate upstream data."
+
+  - alert: HighResponseLatency
+    expr: histogram_quantile(0.95, rate(response_delay_seconds_bucket[5m])) > 0
+    for: 0s
+    annotations:
+      description: "P95 response latency exceeded 1 second."
+
+  - alert: LowModelAccuracy
+    expr: model_accuracy < 1
+    for: 0s
+    annotations:
+      description: "Model accuracy dropped below threshold. Auto retraining triggered."
