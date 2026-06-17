@@ -25,7 +25,7 @@ inference_request_total = Counter(
     ['status']
 )
 inference_latency_seconds = Histogram(
-    'inference_latency_seconds', 
+    'response_delay_seconds', 
     'Time spent processing model inference'
 )
 
@@ -142,7 +142,6 @@ def predict(payload: Dict[str, float]):
             )
             
         # 2. Convert incoming structural sequence maps to ordered layout DataFrames
-        # Forces ordered formatting based strictly on feature sequence naming parameters
         ordered_row = [payload[feat] for feat in state.feature_names]
         df_input = pd.DataFrame([ordered_row], columns=state.feature_names)
         
@@ -168,7 +167,7 @@ def predict(payload: Dict[str, float]):
         
         return {
             "prediction": int(prediction[0]),
-            "confidence": round(confidence, 4),  # Rounded to 4 decimal places for precision
+            "confidence": round(confidence, 4),
             "model_version": state.version
         }
         

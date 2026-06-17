@@ -7,25 +7,21 @@ from drift_detector import SimpleDriftDetector
 import subprocess
 import json
 import sys
+
 # Append project root to path to allow seamless cross-directory sub-module loading
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 from model.retrain_trigger import trigger_retraining_pipeline
 
-
 # ==========================================
-# METRICS CONFIGURATION (Task 3.3 Reference)
+# METRICS CONFIGURATION (Task 3.3 & Part 4 Rubric Alignment)
 # ==========================================
-# Task 3.3: Prometheus counter for feature additions
 feature_added_counter = Counter('feature_added', 'Number of features added to the schema since startup')
-
-# Task 3.3: Prometheus counter for feature removals
 feature_removed_counter = Counter('feature_removed', 'Number of features removed from the schema since startup')
-
-# Task 3.3: Prometheus gauge for binary distribution drift tracking (1 = drift, 0 = stable)
 drift_gauge = Gauge('distribution_drift_detected', 'Set to 1 when drift is detected in the current batch, 0 otherwise')
+api_unavailable_counter = Counter('datalake_unavailable', 'Total number of times the data lake API was unavailable')
 
-# Task 3.3: Prometheus counter for tracking data source/datalake infrastructure unavailability
-api_unavailable_counter = Counter('datalake_unavailable_total', 'Total number of times the data lake API was unavailable')
+# NEW: Rubric metrics requirement
+records_processed_total = Counter('records_processed_total', 'Cumulative number of records successfully ingested')
 
 # ==========================================
 # SYSTEM PARAMETERS & SECURITY CONFIGURATION
@@ -100,6 +96,9 @@ while True:
             df = pd.DataFrame(records)
             current_schema = set(df.columns)
             
+            # --- NEW METRIC INCREMENTATION ---
+            records_processed_total.inc(len(df))
+
             # --------------------------------------------------
             # TASK 3.3 IMPLEMENTATION: SCHEMA MONITORING LOGIC
             # --------------------------------------------------

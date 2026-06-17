@@ -2,18 +2,17 @@ import os
 import json
 import subprocess
 import requests
-from prometheus_client import Counter
-from prometheus_client import Counter, Gauge  # Update import
+from prometheus_client import Counter, Gauge
 
-# Preserve your exact Prometheus metric reference
-retrain_total_counter = Counter('retrain_total', 'Total number of times the retraining pipeline has been triggered')
+# Preserve your exact Prometheus metric reference updated for Part 4 Rubric
+retrain_count_total = Counter('retrain_count_total', 'Total number of times the retraining pipeline has been triggered')
 
 # Fetch Slack configuration securely from environment variables
 SLACK_WEBHOOK_URL = os.environ.get("SLACK_WEBHOOK_URL")
 
-# Task 4.1: Metrics recording and exposing active model state
+# Task 4.1: Metrics recording and exposing active model state updated for Part 4 Rubric
 model_version_gauge = Gauge('model_version', 'The version integer of the currently deployed model')
-model_accuracy_gauge = Gauge('model_validation_accuracy', 'The validation accuracy of the currently deployed model')
+model_accuracy_gauge = Gauge('model_accuracy', 'The validation accuracy of the currently deployed model')
 
 def update_model_prometheus_metrics():
     """Reads latest_model_metadata.json and refreshes the Prometheus Gauges."""
@@ -38,7 +37,6 @@ def update_model_prometheus_metrics():
         except Exception as e:
             print(f"Failed to refresh model metrics to Prometheus: {e}")
 
-
 def send_slack_alert(message):
     """Sends a real-time notification payload to the configured Slack webhook channel."""
     if not SLACK_WEBHOOK_URL:
@@ -55,7 +53,7 @@ def trigger_retraining_pipeline(reason):
     parses metadata, and dispatches structural status alerts to Slack.
     """
     print(f"\n[RETRAINING INITIATED] Reason: {reason}")
-    retrain_total_counter.inc()
+    retrain_count_total.inc()
     
     # Resolve the path to train.py relative to this orchestrator file location
     current_dir = os.path.dirname(os.path.abspath(__file__))
@@ -77,7 +75,6 @@ def trigger_retraining_pipeline(reason):
         
         # REFRESH PROMETHEUS METRICS IMMEDIATELY ON SUCCESSFUL TRAINING
         update_model_prometheus_metrics()
-        
         
         # Resolve path to the unversioned single metadata file
         metadata_path = os.path.join(current_dir, "latest_model_metadata.json")
