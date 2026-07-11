@@ -14,4 +14,4 @@ rule_files:
 scrape_configs:
   - job_name: 'mlops-ec2-inference-service'
     static_configs:
-      - targets: ['3.89.164.37:8000']
+      - targets: ['54.209.207.156:8000']

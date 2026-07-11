@@ -2,13 +2,13 @@
 
 ## AWS EC2 Deployment
 
-Public IPv4 Address: 3.89.164.37
+Public IPv4 Address: 54.209.207.156
 
 Inference Service Endpoints:
 
-- http://3.89.164.37:8000/health
-- http://3.89.164.37:8000/docs
-- http://3.89.164.37:8000/metrics
+- http://54.209.207.156:8000/health
+- http://54.209.207.156:8000/docs
+- http://54.209.207.156:8000/metrics
 
 Docker Image:
 
