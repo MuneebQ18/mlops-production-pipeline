@@ -15,7 +15,7 @@ fi
 # ==========================================
 # SYSTEM PARAMETERS
 # ==========================================
-IMAGE_NAME="mlops-inference-service"
+IMAGE_NAME="mlops-production-pipeline"
 TAG="latest"
 REMOTE_CONTAINER_NAME="inference-api"
 REMOTE_USER="ubuntu"

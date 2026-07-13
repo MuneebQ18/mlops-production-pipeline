@@ -1,4 +1,4 @@
-# MLOps Project
+# MLOps Production Pipeline
 
 ## AWS EC2 Deployment
 
@@ -12,4 +12,4 @@ Inference Service Endpoints:
 
 Docker Image:
 
-- docker.io/muneeb0718/mlops-inference-service:latest
+- docker.io/muneeb0718/mlops-production-pipeline:latest
