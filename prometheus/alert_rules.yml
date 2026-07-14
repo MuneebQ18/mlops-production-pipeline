@@ -34,13 +34,13 @@ groups:
       description: "Feature-level drift flagged. Investigate upstream data."
 
   - alert: HighResponseLatency
-    expr: histogram_quantile(0.95, rate(response_delay_seconds_bucket[5m])) > 0
+    expr: histogram_quantile(0.95, rate(response_delay_seconds_bucket[5m])) > 1
     for: 0s
     annotations:
       description: "P95 response latency exceeded 1 second."
 
   - alert: LowModelAccuracy
-    expr: model_accuracy < 1
+    expr: model_accuracy < 0.8
     for: 0s
     annotations:
       description: "Model accuracy dropped below threshold. Auto retraining triggered."
