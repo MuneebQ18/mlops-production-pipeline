@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   prometheus:
     image: prom/prometheus:v2.45.0
@@ -26,6 +24,18 @@ services:
       - '9093:9093'
     restart: unless-stopped
     
+  metrics-exporter:
+    image: python:3.10-slim
+    container_name: metrics-exporter
+    working_dir: /app
+    volumes:
+      - .:/app
+    command: >
+      sh -c "pip install prometheus_client==0.25.0 &&
+             python monitoring/metrics_exporter.py"
+    ports:
+      - "8001:8001"
+    restart: unless-stopped
 
   grafana:
     image: grafana/grafana:10.0.0
@@ -37,5 +47,8 @@ services:
       - GF_SECURITY_ADMIN_PASSWORD=admin
       - GF_USERS_ALLOW_SIGN_UP=false
     volumes:
-      - ./grafana/dashboards:/var/lib/grafana/dashboards
+      - grafana-storage:/var/lib/grafana
     restart: unless-stopped
+  
+volumes:
+  grafana-storage:

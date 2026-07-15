@@ -32,6 +32,30 @@ def update_model_prometheus_metrics():
                 model_version_gauge.set(version)
             if accuracy is not None:
                 model_accuracy_gauge.set(accuracy)
+
+            # Update metrics_state.json for the exporter
+            state_file = os.path.join(
+                os.path.dirname(os.path.abspath(__file__)),
+                "..",
+                "monitoring",
+                "metrics_state.json"
+            )
+
+            state_file = os.path.abspath(state_file)
+
+            # Read existing state if it exists
+            state = {}
+            if os.path.exists(state_file):
+                with open(state_file, "r") as f:
+                    state = json.load(f)
+
+            # Update only the fields this file owns
+            state["model_version"] = version
+            state["model_accuracy"] = accuracy
+
+            # Write back
+            with open(state_file, "w") as f:
+                json.dump(state, f, indent=4)
                 
             print(f"[PROMETHEUS UPDATE] Synchronized state to Model v{version} (Acc: {accuracy})")
         except Exception as e:

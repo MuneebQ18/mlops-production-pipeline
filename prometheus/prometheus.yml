@@ -15,3 +15,7 @@ scrape_configs:
   - job_name: 'mlops-ec2-inference-service'
     static_configs:
       - targets: ['54.209.207.156:8000']
+
+  - job_name: 'metrics-exporter'
+    static_configs:
+      - targets: ['metrics-exporter:8001']

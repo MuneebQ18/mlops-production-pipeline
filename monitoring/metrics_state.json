@@ -1,0 +1,9 @@
+{
+    "model_accuracy": 0.9222,
+    "model_version": 9,
+    "distribution_drift_detected": 0,
+    "feature_added": 0,
+    "feature_removed": 0,
+    "datalake_unavailable": 97.0,
+    "retrain_count_total": 0
+}

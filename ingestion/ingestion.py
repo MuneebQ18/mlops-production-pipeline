@@ -142,7 +142,35 @@ while True:
             # Push current drift status to Prometheus
             drift_gauge.set(drift_status)
             previous_schema = current_schema
-            
+
+            # ------------------------------
+            # Update metrics_state.json
+            # ------------------------------
+            state_file = os.path.abspath(
+                os.path.join(
+                    os.path.dirname(__file__),
+                    "..",
+                    "monitoring",
+                    "metrics_state.json"
+                )
+            )
+
+            state = {}
+
+            if os.path.exists(state_file):
+                with open(state_file, "r") as f:
+                    state = json.load(f)
+
+            state["distribution_drift_detected"] = drift_status
+
+            # Update counters
+            state["feature_added"] = feature_added_counter._value.get()
+            state["feature_removed"] = feature_removed_counter._value.get()
+            state["datalake_unavailable"] = api_unavailable_counter._value.get()
+
+            with open(state_file, "w") as f:
+                json.dump(state, f, indent=4)
+
             # Write batch file to disk repository
             if not os.path.exists(csv_path):
                 df.to_csv(csv_path, index=False)
@@ -194,7 +222,29 @@ while True:
     except (requests.exceptions.ConnectionError, requests.exceptions.ReadTimeout) as e:
         err_msg = f"Network Exception: Data source connection failed or timed out. Details: {e}"
         print(err_msg)
+
         api_unavailable_counter.inc()
         send_slack_alert(err_msg)
-        
+
+        # Persist updated metrics for exporter
+        state_file = os.path.abspath(
+            os.path.join(
+                os.path.dirname(__file__),
+                "..",
+                "monitoring",
+                "metrics_state.json"
+            )
+        )
+
+        state = {}
+
+        if os.path.exists(state_file):
+            with open(state_file, "r") as f:
+                state = json.load(f)
+
+        state["datalake_unavailable"] = api_unavailable_counter._value.get()
+
+        with open(state_file, "w") as f:
+            json.dump(state, f, indent=4)
+
     time.sleep(30)

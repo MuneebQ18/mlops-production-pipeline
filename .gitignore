@@ -7,3 +7,5 @@ __pycache__/
 ingestion/__pycache__/
 *.pyc
 .env
+
+alertmanager/alertmanager.yml
