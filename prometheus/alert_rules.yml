@@ -4,7 +4,7 @@ groups:
   rules:
 
   - alert: DataLakeUnavailable
-    expr: increase(datalake_unavailable[1m]) > 0
+    expr: increase(datalake_unavailable_total[1m]) > 0
     for: 30s
     annotations:
       description: "Data source returned 503. Check API availability."

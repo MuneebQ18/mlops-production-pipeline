@@ -77,7 +77,28 @@ def trigger_retraining_pipeline(reason):
     parses metadata, and dispatches structural status alerts to Slack.
     """
     print(f"\n[RETRAINING INITIATED] Reason: {reason}")
-    retrain_count_total.inc()
+
+    # Persist retraining count for the metrics exporter
+    state_file = os.path.abspath(
+        os.path.join(
+            os.path.dirname(os.path.abspath(__file__)),
+            "..",
+            "monitoring",
+            "metrics_state.json"
+        )
+    )
+
+    state = {}
+    if os.path.exists(state_file):
+        with open(state_file, "r") as f:
+            state = json.load(f)
+
+    state["retrain_count_total"] = state.get("retrain_count_total", 0) + 1
+
+    with open(state_file, "w") as f:
+        json.dump(state, f, indent=4)
+
+    print(f"[RETRAIN COUNT] Total retraining runs: {state['retrain_count_total']}")
     
     # Resolve the path to train.py relative to this orchestrator file location
     current_dir = os.path.dirname(os.path.abspath(__file__))
